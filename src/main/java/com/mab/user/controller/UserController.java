@@ -54,32 +54,44 @@ public class UserController {
 
 	// 자동 개행 및 줄 바꿈 (new Gson은 일자로 나옴)
 	Gson gson = new GsonBuilder().setPrettyPrinting().create();
-	
+
 	private final TokenProvider tokenProvider;
 	private final AuthenticationManagerBuilder authenticationManagerBuilder;
 
-	public UserController(TokenProvider tokenProvider,
-			AuthenticationManagerBuilder authenticationManagerBuilder) {
+	public UserController(TokenProvider tokenProvider, AuthenticationManagerBuilder authenticationManagerBuilder) {
 		this.tokenProvider = tokenProvider;
 		this.authenticationManagerBuilder = authenticationManagerBuilder;
 	}
-	
-	 @PostMapping("/authenticate")
-	    public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto) {
 
-	        UsernamePasswordAuthenticationToken authenticationToken =
-	                new UsernamePasswordAuthenticationToken(loginDto.getUsername(), loginDto.getPassword());
+	@PostMapping("/authenticate")
+	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto) {
 
-	        Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-	        SecurityContextHolder.getContext().setAuthentication(authentication);
+		TokenDto tokenDto = new TokenDto();
 
-	        String jwt = tokenProvider.createToken(authentication);
-
-	        HttpHeaders httpHeaders = new HttpHeaders();
-	        httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
-
-	        return new ResponseEntity<>(new TokenDto(jwt), httpHeaders, HttpStatus.OK);
-	    }
+		UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+				loginDto.getUsername(), loginDto.getPassword());
+		
+		try {
+			Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
+			SecurityContextHolder.getContext().setAuthentication(authentication);
+			
+			String jwt = tokenProvider.createToken(authentication);
+			
+			HttpHeaders httpHeaders = new HttpHeaders();
+			httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
+			
+			tokenDto.setToken(jwt);
+			tokenDto.setResult("1");
+			log.info("login success....♡");
+			
+			return new ResponseEntity<>(tokenDto, httpHeaders, HttpStatus.OK);
+		} catch (Exception e) {
+			tokenDto.setResult("0");
+			log.info("login fail....♡");
+			return new ResponseEntity<>(tokenDto, HttpStatus.OK);
+		}
+		
+	}
 
 	// **********************
 	// 로그인 완료
@@ -94,10 +106,9 @@ public class UserController {
 		Cookie cc = new Cookie("user_no", null); // choiceCookieName(쿠키 이름)에 대한 값을 null로 지정
 		cc.setMaxAge(0); // 유효시간을 0으로 설정
 		response.addCookie(cc); // 응답 헤더에 추가해서 없어지도록 함
-	
 
 		UserEntity uvo = service.user_login_info(username);
-		log.info("uvo: {}",uvo);
+		log.info("uvo: {}", uvo);
 		Map<String, String> map = new HashMap<String, String>();
 
 		session.setAttribute("user_id", uvo.getUser_id());
@@ -105,7 +116,6 @@ public class UserController {
 		Cookie cookie = new Cookie("user_no", uvo.getUser_no()); // 고유번호 쿠키 저장
 		cookie.setPath("/");
 		response.addCookie(cookie);
-		
 
 		log.info("User Login success.....");
 		map.put("result", "1"); // 로그인 성공
@@ -133,6 +143,5 @@ public class UserController {
 
 		return jsonObject;
 	}
-
 
 }// end class

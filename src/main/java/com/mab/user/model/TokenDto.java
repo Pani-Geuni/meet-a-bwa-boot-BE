@@ -17,4 +17,6 @@ import lombok.Setter;
 public class TokenDto {
 
     private String token;
+    
+    private String result;
 }
