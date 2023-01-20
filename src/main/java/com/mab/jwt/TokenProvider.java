@@ -26,13 +26,16 @@ public class TokenProvider implements InitializingBean {
    private static final String AUTHORITIES_KEY = "auth";
    private final String secret;
    private final long tokenValidityInMilliseconds;
+   private final long refreshTokenValidityInSeconds;
    private Key key;
 
    public TokenProvider( // 의존성 주입
       @Value("${jwt.secret}") String secret,
-      @Value("${jwt.token-validity-in-seconds}") long tokenValidityInSeconds) {
+      @Value("${jwt.token-validity-in-seconds}") long tokenValidityInSeconds, 
+      @Value("${jwt.refresh-token-validity-in-seconds}") long refreshTokenValidityInSeconds) {
       this.secret = secret;
       this.tokenValidityInMilliseconds = tokenValidityInSeconds * 1000;
+      this.refreshTokenValidityInSeconds = refreshTokenValidityInSeconds *1000;
    }
 
    @Override
@@ -56,6 +59,28 @@ public class TokenProvider implements InitializingBean {
          .signWith(key, SignatureAlgorithm.HS512)
          .setExpiration(validity)
          .compact();
+   }
+   
+   public String creatRefreshToken(Authentication authentication) { //권한정보를 담은 토큰 생성
+	   String authorities = authentication.getAuthorities().stream()
+			   .map(GrantedAuthority::getAuthority)
+			   .collect(Collectors.joining(","));
+	   
+	   long now = (new Date()).getTime();
+	   Date validity = new Date(now + this.refreshTokenValidityInSeconds); // application.properties에 설정했던 만료시간
+	   
+	   // jwt 토큰 생성 후, 리턴
+	   return Jwts.builder()
+			   .setSubject(authentication.getName())
+			   .claim(AUTHORITIES_KEY, authorities)
+			   .signWith(key, SignatureAlgorithm.HS512)
+			   .setExpiration(validity)
+			   .compact();
+   }
+   
+   public long setExpiration() {
+	   long now = (new Date()).getTime();
+	   return now+refreshTokenValidityInSeconds;
    }
 
    // 토큰에 담겨있는 정보를 이용해 Authentication 객체를 리턴하는 메소드

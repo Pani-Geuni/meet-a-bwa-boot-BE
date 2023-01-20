@@ -1,8 +1,12 @@
 
 package com.mab.user.controller;
 
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
@@ -10,7 +14,9 @@ import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -24,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.mab.config.RedisConfig;
 import com.mab.jwt.JwtFilter;
 import com.mab.jwt.TokenProvider;
 import com.mab.user.model.LoginDto;
@@ -34,8 +41,6 @@ import com.mab.user.service.UserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
-
-import org.springframework.http.HttpStatus;
 
 @Api(tags = "유저 컨트롤러")
 @Slf4j
@@ -57,32 +62,52 @@ public class UserController {
 
 	private final TokenProvider tokenProvider;
 	private final AuthenticationManagerBuilder authenticationManagerBuilder;
+	private final RedisConfig redisTemplate;
 
-	public UserController(TokenProvider tokenProvider, AuthenticationManagerBuilder authenticationManagerBuilder) {
+	public UserController(TokenProvider tokenProvider, AuthenticationManagerBuilder authenticationManagerBuilder, RedisConfig redisTemplate) {
 		this.tokenProvider = tokenProvider;
 		this.authenticationManagerBuilder = authenticationManagerBuilder;
+		this.redisTemplate = redisTemplate;
 	}
 
 	@PostMapping("/authenticate")
-	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto) {
+	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto, HttpServletResponse response) {
 
 		TokenDto tokenDto = new TokenDto();
 
 		UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
 				loginDto.getUsername(), loginDto.getPassword());
-		
+
 		try {
 			Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
 			SecurityContextHolder.getContext().setAuthentication(authentication);
-			
+
 			String jwt = tokenProvider.createToken(authentication);
-			
+			String re_jwt = tokenProvider.creatRefreshToken(authentication);
+
 			HttpHeaders httpHeaders = new HttpHeaders();
 			httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
-			
+
 			tokenDto.setToken(jwt);
+			tokenDto.setRefesh_token(re_jwt);
 			tokenDto.setResult("1");
 			log.info("login success....♡");
+
+			// Cookie Setting
+			UserEntity uvo = service.user_login_info(loginDto.getUsername());
+			Cookie cookie1 = new Cookie("user_no", uvo.getUser_no());
+			response.addCookie(cookie1);
+
+			Cookie cookie2 = new Cookie("refresh_token", re_jwt);
+			cookie2.setHttpOnly(true);
+			cookie2.setSecure(true);
+			response.addCookie(cookie2);
+
+			// Redis Setting
+//			UUID uid = Optional.ofNullable(UUID.class.cast(session.getAttribute("refresh_token"))).orElse(UUID.randomUUID());
+//			session.setAttribute("refresh_token", uid);
+			 redisTemplate.redisTemplate().opsForValue()
+             .set("RT:" + authentication.getName(), re_jwt, tokenProvider.setExpiration(), TimeUnit.MILLISECONDS);
 			
 			return new ResponseEntity<>(tokenDto, httpHeaders, HttpStatus.OK);
 		} catch (Exception e) {
@@ -90,7 +115,7 @@ public class UserController {
 			log.info("login fail....♡");
 			return new ResponseEntity<>(tokenDto, HttpStatus.OK);
 		}
-		
+
 	}
 
 	// **********************
