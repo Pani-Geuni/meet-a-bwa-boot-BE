@@ -18,5 +18,7 @@ public class TokenDto {
 
     private String token;
     
+    private String refesh_token;
+    
     private String result;
 }

@@ -36,6 +36,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 
 @Api(tags = "유저 컨트롤러")
 @Slf4j
@@ -64,7 +65,7 @@ public class UserController {
 	}
 
 	@PostMapping("/authenticate")
-	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto) {
+	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto, HttpServletResponse response) {
 
 		TokenDto tokenDto = new TokenDto();
 
@@ -76,13 +77,25 @@ public class UserController {
 			SecurityContextHolder.getContext().setAuthentication(authentication);
 			
 			String jwt = tokenProvider.createToken(authentication);
+			String re_jwt = tokenProvider.creatRefreshToken(authentication);
 			
 			HttpHeaders httpHeaders = new HttpHeaders();
 			httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
 			
 			tokenDto.setToken(jwt);
+			tokenDto.setRefesh_token(re_jwt);
 			tokenDto.setResult("1");
 			log.info("login success....♡");
+			
+			// Cookie Setting
+			UserEntity uvo = service.user_login_info(loginDto.getUsername());
+			Cookie cookie1 = new Cookie("user_no", uvo.getUser_no());
+			response.addCookie(cookie1);
+			
+			Cookie cookie2 = new Cookie("refresh_token", re_jwt);
+			cookie2.setHttpOnly(true);
+			cookie2.setSecure(true);
+			response.addCookie(cookie2);
 			
 			return new ResponseEntity<>(tokenDto, httpHeaders, HttpStatus.OK);
 		} catch (Exception e) {
