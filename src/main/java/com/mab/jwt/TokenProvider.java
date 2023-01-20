@@ -77,6 +77,11 @@ public class TokenProvider implements InitializingBean {
 			   .setExpiration(validity)
 			   .compact();
    }
+   
+   public long setExpiration() {
+	   long now = (new Date()).getTime();
+	   return now+refreshTokenValidityInSeconds;
+   }
 
    // 토큰에 담겨있는 정보를 이용해 Authentication 객체를 리턴하는 메소드
    public Authentication getAuthentication(String token) { // 토큰을 파라미터로 받아서
