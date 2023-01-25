@@ -88,7 +88,7 @@ public class JwtFilter extends OncePerRequestFilter {
 		if (request.getCookies() != null) {
 			for (int i = 0; i < request.getCookies().length; i++) {
 				if (request.getCookies()[i].getName().equals("refresh_token"))
-				return request.getCookies()[i].getValue().substring(7);
+				return request.getCookies()[i].getValue();
 //				return request.getCookies()[i].getName().substring(7); 위에 안되면 이 코드로 해보기
 			}
 //        return request.getHeader("refresh_token").substring(7); // 그 위에도 안되면 이 코드로 하기

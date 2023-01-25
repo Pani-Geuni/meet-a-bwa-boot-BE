@@ -91,7 +91,7 @@ public class UserController {
 			httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
 
 			tokenDto.setToken(jwt);
-			tokenDto.setRefesh_token("Bearer " + re_jwt);
+			tokenDto.setRefesh_token(re_jwt);
 			tokenDto.setResult("1");
 			log.info("login success....♡");
 
@@ -110,8 +110,10 @@ public class UserController {
 			// cros 환경에서 쿠키 저장하려면 samesite 설정을 none으로 해야 함. 
 			ResponseCookie cookie3 = ResponseCookie.from("user_no", uvo.getUser_no()).path("/").sameSite("none").domain("localhost").build();
 			response.addHeader("Set-Cookie", cookie3.toString());
-			ResponseCookie cookie4 = ResponseCookie.from("refresh_token", re_jwt).path("/").sameSite("none").httpOnly(true).secure(true).domain("localhost").build();
+			ResponseCookie cookie4 = ResponseCookie.from("user_image", "https://meet-a-bwa.s3.ap-northeast-2.amazonaws.com/user/" + uvo.getUser_image()).path("/").sameSite("none").domain("localhost").build();
 			response.addHeader("Set-Cookie", cookie4.toString());
+			ResponseCookie cookie5 = ResponseCookie.from("refresh_token", re_jwt).path("/").sameSite("none").httpOnly(true).secure(true).domain("localhost").build();
+			response.addHeader("Set-Cookie", cookie5.toString());
 
 			// Redis Setting 아래 주석은 세션을 세션 대신에 redis에 저장하는 부분. 우리 프로젝트는 세션을 사용하지 않기 때문에 다르게 작성함.
 //			UUID uid = Optional.ofNullable(UUID.class.cast(session.getAttribute("refresh_token"))).orElse(UUID.randomUUID());
@@ -128,55 +130,5 @@ public class UserController {
 
 	}
 
-	// **********************
-	// 로그인 완료
-	// **********************
-	@ApiOperation(value = "로그인 성공", notes = "로그인 성공 입니다")
-	@PostMapping("/loginSuccess")
-	public String user_loginOK(@RequestParam String username, HttpServletResponse response) {
-		log.info("user_loginOK ()...");
-		log.info("username: {}", username);
-
-		// 로그인 성공시 기존의 유저관련쿠키 제거
-		Cookie cc = new Cookie("user_no", null); // choiceCookieName(쿠키 이름)에 대한 값을 null로 지정
-		cc.setMaxAge(0); // 유효시간을 0으로 설정
-		response.addCookie(cc); // 응답 헤더에 추가해서 없어지도록 함
-
-		UserEntity uvo = service.user_login_info(username);
-		log.info("uvo: {}", uvo);
-		Map<String, String> map = new HashMap<String, String>();
-
-		session.setAttribute("user_id", uvo.getUser_id());
-
-		Cookie cookie = new Cookie("user_no", uvo.getUser_no()); // 고유번호 쿠키 저장
-		cookie.setPath("/");
-		response.addCookie(cookie);
-
-		log.info("User Login success.....");
-		map.put("result", "1"); // 로그인 성공
-
-		String jsonObject = gson.toJson(map);
-
-		return jsonObject;
-	}
-
-	// **********************
-	// 로그인 실패
-	// **********************
-	@ApiOperation(value = "로그인 실패", notes = "로그인 실패 입니다")
-	@PostMapping("/loginFail")
-	public String user_loginFail(UserEntity uvo, HttpServletResponse response) {
-		log.info("user_loginFail ()...");
-		log.info("result: {}", uvo);
-
-		Map<String, String> map = new HashMap<String, String>();
-
-		log.info("User Login failed.....");
-		map.put("result", "0"); // 로그인 실패
-
-		String jsonObject = gson.toJson(map);
-
-		return jsonObject;
-	}
 
 }// end class
