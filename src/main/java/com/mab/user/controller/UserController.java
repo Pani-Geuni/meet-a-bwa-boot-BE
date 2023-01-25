@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
@@ -89,21 +91,29 @@ public class UserController {
 			httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
 
 			tokenDto.setToken(jwt);
-			tokenDto.setRefesh_token(re_jwt);
+			tokenDto.setRefesh_token("Bearer " + re_jwt);
 			tokenDto.setResult("1");
 			log.info("login success....♡");
 
 			// Cookie Setting
 			UserEntity uvo = service.user_login_info(loginDto.getUsername());
-			Cookie cookie1 = new Cookie("user_no", uvo.getUser_no());
-			response.addCookie(cookie1);
+//			Cookie cookie1 = new Cookie("user_no", uvo.getUser_no());
+//			cookie1.setPath("/");
+//			response.addCookie(cookie1);
+//
+//			Cookie cookie2 = new Cookie("refresh_token", re_jwt);
+//			cookie2.setPath("/");
+//			cookie2.setHttpOnly(true);
+//			cookie2.setSecure(true);
+//			response.addCookie(cookie2);
+			
+			// cros 환경에서 쿠키 저장하려면 samesite 설정을 none으로 해야 함. 
+			ResponseCookie cookie3 = ResponseCookie.from("user_no", uvo.getUser_no()).path("/").sameSite("none").domain("localhost").build();
+			response.addHeader("Set-Cookie", cookie3.toString());
+			ResponseCookie cookie4 = ResponseCookie.from("refresh_token", re_jwt).path("/").sameSite("none").httpOnly(true).secure(true).domain("localhost").build();
+			response.addHeader("Set-Cookie", cookie4.toString());
 
-			Cookie cookie2 = new Cookie("refresh_token", re_jwt);
-			cookie2.setHttpOnly(true);
-			cookie2.setSecure(true);
-			response.addCookie(cookie2);
-
-			// Redis Setting
+			// Redis Setting 아래 주석은 세션을 세션 대신에 redis에 저장하는 부분. 우리 프로젝트는 세션을 사용하지 않기 때문에 다르게 작성함.
 //			UUID uid = Optional.ofNullable(UUID.class.cast(session.getAttribute("refresh_token"))).orElse(UUID.randomUUID());
 //			session.setAttribute("refresh_token", uid);
 			 redisTemplate.redisTemplate().opsForValue()

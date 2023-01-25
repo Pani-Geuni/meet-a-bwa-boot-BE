@@ -5,6 +5,7 @@ import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,9 +20,14 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.stream.Collectors;
 
+import javax.servlet.http.HttpServletResponse;
+
 @Slf4j
 @Component
 public class TokenProvider implements InitializingBean {
+	
+	@Autowired
+	RedisDao redis;
 
    private static final String AUTHORITIES_KEY = "auth";
    private final String secret;
@@ -78,9 +84,11 @@ public class TokenProvider implements InitializingBean {
 			   .compact();
    }
    
+   // Refresh Token 만료시간
    public long setExpiration() {
-	   long now = (new Date()).getTime();
-	   return now+refreshTokenValidityInSeconds;
+//	   long now = (new Date()).getTime();
+//	   return now+refreshTokenValidityInSeconds;
+	   return refreshTokenValidityInSeconds;
    }
 
    // 토큰에 담겨있는 정보를 이용해 Authentication 객체를 리턴하는 메소드
@@ -118,5 +126,18 @@ public class TokenProvider implements InitializingBean {
          log.info("JWT 토큰이 잘못되었습니다.");
       }
       return false; // 문제가 있으면 false
+   }
+   
+   // Redis에 refresh token 이 있는지 확인
+   public boolean existsRefreshToken(String refreshToken) {
+	   if(redis.getValues(refreshToken)!=null)
+	   return true;
+	   else
+	   return false;
+   }
+   
+   // access token 을 header에 저장
+   public void setHeaderAccessToken(HttpServletResponse response, String accessToken) {
+       response.setHeader(JwtFilter.AUTHORIZATION_HEADER, "Bearer "+ accessToken);
    }
 }
