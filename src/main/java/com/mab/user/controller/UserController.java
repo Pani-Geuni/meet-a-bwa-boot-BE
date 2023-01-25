@@ -24,10 +24,12 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.gson.Gson;
@@ -72,6 +74,7 @@ public class UserController {
 		this.redisTemplate = redisTemplate;
 	}
 
+	@ApiOperation(value = "로그인", notes = "로그인 - 성공/실패")
 	@PostMapping("/authenticate")
 	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto, HttpServletResponse response) {
 
@@ -128,6 +131,12 @@ public class UserController {
 			return new ResponseEntity<>(tokenDto, HttpStatus.OK);
 		}
 
+	}
+
+	@ApiOperation(value = "테스트", notes = "테스트")
+	@GetMapping("/test")
+	public String test() {
+		return "1";
 	}
 
 

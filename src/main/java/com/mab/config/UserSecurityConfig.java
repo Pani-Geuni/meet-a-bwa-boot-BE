@@ -13,6 +13,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.CorsFilter;
 
@@ -31,18 +32,18 @@ import lombok.extern.slf4j.Slf4j;
 public class UserSecurityConfig {
 
 	  private final TokenProvider tokenProvider;
-//	    private final CorsFilter corsFilter;
+	    private final CorsFilter corsFilter;
 	    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 	    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
 	    public UserSecurityConfig(
 	            TokenProvider tokenProvider,
-//	            CorsFilter corsFilter,
+	            CorsFilter corsFilter,
 	            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
 	            JwtAccessDeniedHandler jwtAccessDeniedHandler
 	    ) {
 	        this.tokenProvider = tokenProvider;
-//	        this.corsFilter = corsFilter;
+	        this.corsFilter = corsFilter;
 	        this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
 	        this.jwtAccessDeniedHandler = jwtAccessDeniedHandler;
 	    }
@@ -81,20 +82,21 @@ public class UserSecurityConfig {
 		
 		http.csrf().disable()
 		
-//		            .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
+		            .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
 		
 		            .exceptionHandling().authenticationEntryPoint(jwtAuthenticationEntryPoint)
 		            .accessDeniedHandler(jwtAccessDeniedHandler)
-		//
-//		        .and()
-//		        .headers()
-//		        .frameOptions()
-//		        .sameOrigin()
+		
+		        // https://gigas-blog.tistory.com/124 
+		        .and()
+		        .headers()
+		        .frameOptions()
+		        .sameOrigin() // 안되면 .ALLOW-FROM uri 시도
 		
 		            // 세션을 사용하지 않기 때문에 STATELESS로 설정
 		            .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 		
-		            .and().authorizeRequests().antMatchers("/","/authenticate","/meet-a-bwa/authenticate", "/test/", "/api/v2/**", "/v3/api-docs", "/static/**", "/swagger*/**",
+		            .and().authorizeRequests().antMatchers("/","/authenticate", "/test/", "/api/v2/**", "/v3/api-docs", "/static/**", "/swagger*/**",
 							"/api/v1/auth/**", "/h2-console/**", "/favicon.ico", "/swagger-ui.html", "/swagger/**",
 							"/swagger-resources/**", "webjars/**", "/v2/api-docs", "/user/insertOK", "/js/**", "/css/**",
 							"/images/**", "/error").permitAll()
