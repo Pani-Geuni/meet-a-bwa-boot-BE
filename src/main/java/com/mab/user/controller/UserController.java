@@ -36,6 +36,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mab.config.RedisConfig;
 import com.mab.jwt.JwtFilter;
+import com.mab.jwt.RedisDao;
 import com.mab.jwt.TokenProvider;
 import com.mab.user.model.LoginDto;
 import com.mab.user.model.TokenDto;
@@ -49,7 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 @Api(tags = "유저 컨트롤러")
 @Slf4j
 @RestController
-@RequestMapping("/")
+@RequestMapping("/user")
 public class UserController {
 
 	@Autowired
@@ -67,15 +68,17 @@ public class UserController {
 	private final TokenProvider tokenProvider;
 	private final AuthenticationManagerBuilder authenticationManagerBuilder;
 	private final RedisConfig redisTemplate;
+	private final RedisDao redisDao;
 
-	public UserController(TokenProvider tokenProvider, AuthenticationManagerBuilder authenticationManagerBuilder, RedisConfig redisTemplate) {
+	public UserController(TokenProvider tokenProvider, AuthenticationManagerBuilder authenticationManagerBuilder, RedisConfig redisTemplate, RedisDao redisDao) {
 		this.tokenProvider = tokenProvider;
 		this.authenticationManagerBuilder = authenticationManagerBuilder;
 		this.redisTemplate = redisTemplate;
+		this.redisDao = redisDao;
 	}
 
 	@ApiOperation(value = "로그인", notes = "로그인 - 성공/실패")
-	@PostMapping("/authenticate")
+	@PostMapping("/login")
 	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto, HttpServletResponse response) {
 
 		TokenDto tokenDto = new TokenDto();
@@ -131,6 +134,31 @@ public class UserController {
 			return new ResponseEntity<>(tokenDto, HttpStatus.OK);
 		}
 
+	}
+	
+	@ApiOperation(value = "로그인", notes = "로그인 - 성공/실패")
+	@PostMapping("/logout")
+	public ResponseEntity<String> logout(TokenDto logout) {
+	    /*1. Access Token 검증*/
+	    if (!tokenProvider.validateToken(logout.getToken())) {
+	        return new ResponseEntity<>("0", HttpStatus.BAD_REQUEST);
+	    }
+
+	    /*2. Access Token에서 User id을 가져옴*/
+	    Authentication authentication = tokenProvider.getAuthentication(logout.getToken());
+
+	    /*3. Redis에서 해당 User id로 저장된 refresh token이 있는지 여부를 확인 후, 있을 경우 삭제*/
+	    if (redisTemplate.redisTemplate().opsForValue().get("RT:" + authentication.getName()) != null) {
+	        //refresh token 삭제
+	    	redisDao.deleteValues("RT:" + authentication.getName());
+	    }
+
+	    /*4. 해당 access token 유효시간 가지고 와서 BlackList로 저장*/
+	    Long expiration = tokenProvider.getExpiration(logout.getToken());
+	    redisTemplate.redisTemplate().opsForValue()
+	            .set(logout.getToken(), "logout", expiration, TimeUnit.MILLISECONDS);
+
+	    return new ResponseEntity<>("1",HttpStatus.OK);
 	}
 
 	@ApiOperation(value = "테스트", notes = "테스트")
