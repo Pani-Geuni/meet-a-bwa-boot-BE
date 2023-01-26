@@ -1,8 +1,11 @@
 package com.mab.jwt;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.GenericFilterBean;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -25,6 +28,10 @@ import java.util.List;
 @Slf4j
 public class JwtFilter extends OncePerRequestFilter {
 
+	@Autowired
+	RedisTemplate redisTemplate;
+	
+	
 	public static final String AUTHORIZATION_HEADER = "Authorization";
 	private TokenProvider tokenProvider;
 
@@ -38,12 +45,17 @@ public class JwtFilter extends OncePerRequestFilter {
 		// 헤더에서 JWT 를 받아옴.
 		String accessToken = resolveAccessToken(request);
 		String refreshToken = resolveRefreshToken(request);
-		
+
 		// 유효한 토큰인지 확인.
 		if (accessToken != null) {
 			// 어세스 토큰이 유효한 경우
 			if (tokenProvider.validateToken(accessToken)) {
-				this.setAuthentication(accessToken);
+				String isLogout = (String) redisTemplate.opsForValue().get(accessToken);
+				// 어세스 토큰이 Redis에 존재하는지(로그아웃 상태)
+				if (ObjectUtils.isEmpty(isLogout)) {
+					this.setAuthentication(accessToken);
+				}else
+					log.info("로그아웃 됨.");
 			}
 			// 어세스 토큰이 만료된 상황 | 리프레시 토큰 또한 존재하는 경우
 			else if (!tokenProvider.validateToken(accessToken) && refreshToken != null) {
@@ -62,15 +74,18 @@ public class JwtFilter extends OncePerRequestFilter {
 					tokenProvider.setHeaderAccessToken(response, newAccessToken);
 					/// 컨텍스트에 넣기
 					this.setAuthentication(newAccessToken);
-				} else log.info("만료된 Refresh Token 이거나 Redis에 Refresh Token 없음.");
-			} else log.info("Header에 Refresh Token 없음.");
-		}else log.info("유효한 Access Token 없음.");
+				} else
+					log.info("만료된 Refresh Token 이거나 Redis에 Refresh Token 없음.");
+			} else
+				log.info("Header에 Refresh Token 없음.");
+		} else
+			log.info("유효한 Access Token 없음.");
 		filterChain.doFilter(request, response);
 	}
 
 // SecurityContext 에 Authentication 객체를 저장.
 	public void setAuthentication(String token) {
-		// 토큰으로부터 유저 정보를 받아옵니다.
+		// 토큰으로부터 유저 정보를 받아옴.
 		Authentication authentication = tokenProvider.getAuthentication(token);
 		// SecurityContext 에 Authentication 객체를 저장.
 		SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -88,51 +103,11 @@ public class JwtFilter extends OncePerRequestFilter {
 		if (request.getCookies() != null) {
 			for (int i = 0; i < request.getCookies().length; i++) {
 				if (request.getCookies()[i].getName().equals("refresh_token"))
-				return request.getCookies()[i].getValue().substring(7);
-//				return request.getCookies()[i].getName().substring(7); 위에 안되면 이 코드로 해보기
+					return request.getCookies()[i].getValue();
+//				return request.getCookies()[i].getName(); 위에 안되면 이 코드로 해보기
 			}
-//        return request.getHeader("refresh_token").substring(7); // 그 위에도 안되면 이 코드로 하기
+//        return request.getHeader("refresh_token"); // 그 위에도 안되면 이 코드로 하기
 		}
 		return null;
 	}
 }
-
-// 리프레시 토큰 넣기 전 코드
-//@Slf4j
-//public class JwtFilter extends GenericFilterBean {
-//	
-//	public static final String AUTHORIZATION_HEADER = "Authorization";
-//	private TokenProvider tokenProvider;
-//	public JwtFilter(TokenProvider tokenProvider) {
-//		this.tokenProvider = tokenProvider;
-//	}
-//	
-//	// JWT Token의 인증 정보(현재 Authentication 정보)를 SecurityContext에 저장
-//	@Override
-//	public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws IOException, ServletException {
-//		HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
-//		String jwt = resolveToken(httpServletRequest);
-//		String requestURI = httpServletRequest.getRequestURI();
-//		
-//		if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-//			Authentication authentication = tokenProvider.getAuthentication(jwt);
-//			SecurityContextHolder.getContext().setAuthentication(authentication);
-//			log.debug("Security Context에 '{}' 인증 정보를 저장했습니다, uri: {}", authentication.getName(), requestURI);
-//		} else {
-//			log.debug("유효한 JWT 토큰이 없습니다, uri: {}", requestURI);
-//		}
-//		
-//		filterChain.doFilter(servletRequest, servletResponse);
-//	}
-//	
-//	// request Header에서 토큰 정보를 꺼내오기 위한 resolveToken 메소드
-//	private String resolveToken(HttpServletRequest request) {
-//		String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
-//		
-//		if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-//			return bearerToken.substring(7);
-//		}
-//		
-//		return null;
-//	}
-//}

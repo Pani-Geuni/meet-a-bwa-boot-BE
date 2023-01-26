@@ -90,6 +90,19 @@ public class TokenProvider implements InitializingBean {
 //	   return now+refreshTokenValidityInSeconds;
 	   return refreshTokenValidityInSeconds;
    }
+   
+   /**
+    * accessToken의 남은 유효시간 얻기
+    */
+   public Long getExpiration(String accessToken) {
+       Date expiration = Jwts.parserBuilder().setSigningKey(AUTHORITIES_KEY)
+               .build().parseClaimsJws(accessToken).getBody().getExpiration();
+
+       //현재 시간
+       long now = new Date().getTime();
+
+       return (expiration.getTime() - now);
+   }
 
    // 토큰에 담겨있는 정보를 이용해 Authentication 객체를 리턴하는 메소드
    public Authentication getAuthentication(String token) { // 토큰을 파라미터로 받아서
@@ -131,9 +144,9 @@ public class TokenProvider implements InitializingBean {
    // Redis에 refresh token 이 있는지 확인
    public boolean existsRefreshToken(String refreshToken) {
 	   if(redis.getValues(refreshToken)!=null)
-	   return true;
+		   return true;
 	   else
-	   return false;
+		   return false;
    }
    
    // access token 을 header에 저장

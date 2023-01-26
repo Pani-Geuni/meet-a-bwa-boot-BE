@@ -24,16 +24,19 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mab.config.RedisConfig;
 import com.mab.jwt.JwtFilter;
+import com.mab.jwt.RedisDao;
 import com.mab.jwt.TokenProvider;
 import com.mab.user.model.LoginDto;
 import com.mab.user.model.TokenDto;
@@ -47,7 +50,7 @@ import lombok.extern.slf4j.Slf4j;
 @Api(tags = "유저 컨트롤러")
 @Slf4j
 @RestController
-@RequestMapping("/")
+@RequestMapping("/user")
 public class UserController {
 
 	@Autowired
@@ -65,14 +68,17 @@ public class UserController {
 	private final TokenProvider tokenProvider;
 	private final AuthenticationManagerBuilder authenticationManagerBuilder;
 	private final RedisConfig redisTemplate;
+	private final RedisDao redisDao;
 
-	public UserController(TokenProvider tokenProvider, AuthenticationManagerBuilder authenticationManagerBuilder, RedisConfig redisTemplate) {
+	public UserController(TokenProvider tokenProvider, AuthenticationManagerBuilder authenticationManagerBuilder, RedisConfig redisTemplate, RedisDao redisDao) {
 		this.tokenProvider = tokenProvider;
 		this.authenticationManagerBuilder = authenticationManagerBuilder;
 		this.redisTemplate = redisTemplate;
+		this.redisDao = redisDao;
 	}
 
-	@PostMapping("/authenticate")
+	@ApiOperation(value = "로그인", notes = "로그인 - 성공/실패")
+	@PostMapping("/login")
 	public ResponseEntity<TokenDto> authorize(@Valid @RequestBody LoginDto loginDto, HttpServletResponse response) {
 
 		TokenDto tokenDto = new TokenDto();
@@ -91,7 +97,7 @@ public class UserController {
 			httpHeaders.add(JwtFilter.AUTHORIZATION_HEADER, "Bearer " + jwt);
 
 			tokenDto.setToken(jwt);
-			tokenDto.setRefesh_token("Bearer " + re_jwt);
+			tokenDto.setRefesh_token(re_jwt);
 			tokenDto.setResult("1");
 			log.info("login success....♡");
 
@@ -110,8 +116,10 @@ public class UserController {
 			// cros 환경에서 쿠키 저장하려면 samesite 설정을 none으로 해야 함. 
 			ResponseCookie cookie3 = ResponseCookie.from("user_no", uvo.getUser_no()).path("/").sameSite("none").domain("localhost").build();
 			response.addHeader("Set-Cookie", cookie3.toString());
-			ResponseCookie cookie4 = ResponseCookie.from("refresh_token", re_jwt).path("/").sameSite("none").httpOnly(true).secure(true).domain("localhost").build();
+			ResponseCookie cookie4 = ResponseCookie.from("user_image", "https://meet-a-bwa.s3.ap-northeast-2.amazonaws.com/user/" + uvo.getUser_image()).path("/").sameSite("none").domain("localhost").build();
 			response.addHeader("Set-Cookie", cookie4.toString());
+			ResponseCookie cookie5 = ResponseCookie.from("refresh_token", re_jwt).path("/").sameSite("none").httpOnly(true).secure(true).domain("localhost").build();
+			response.addHeader("Set-Cookie", cookie5.toString());
 
 			// Redis Setting 아래 주석은 세션을 세션 대신에 redis에 저장하는 부분. 우리 프로젝트는 세션을 사용하지 않기 때문에 다르게 작성함.
 //			UUID uid = Optional.ofNullable(UUID.class.cast(session.getAttribute("refresh_token"))).orElse(UUID.randomUUID());
@@ -127,56 +135,37 @@ public class UserController {
 		}
 
 	}
+	
+	@ApiOperation(value = "로그인", notes = "로그인 - 성공/실패")
+	@PostMapping("/logout")
+	public ResponseEntity<String> logout(TokenDto logout) {
+	    /*1. Access Token 검증*/
+	    if (!tokenProvider.validateToken(logout.getToken())) {
+	        return new ResponseEntity<>("0", HttpStatus.BAD_REQUEST);
+	    }
 
-	// **********************
-	// 로그인 완료
-	// **********************
-	@ApiOperation(value = "로그인 성공", notes = "로그인 성공 입니다")
-	@PostMapping("/loginSuccess")
-	public String user_loginOK(@RequestParam String username, HttpServletResponse response) {
-		log.info("user_loginOK ()...");
-		log.info("username: {}", username);
+	    /*2. Access Token에서 User id을 가져옴*/
+	    Authentication authentication = tokenProvider.getAuthentication(logout.getToken());
 
-		// 로그인 성공시 기존의 유저관련쿠키 제거
-		Cookie cc = new Cookie("user_no", null); // choiceCookieName(쿠키 이름)에 대한 값을 null로 지정
-		cc.setMaxAge(0); // 유효시간을 0으로 설정
-		response.addCookie(cc); // 응답 헤더에 추가해서 없어지도록 함
+	    /*3. Redis에서 해당 User id로 저장된 refresh token이 있는지 여부를 확인 후, 있을 경우 삭제*/
+	    if (redisTemplate.redisTemplate().opsForValue().get("RT:" + authentication.getName()) != null) {
+	        //refresh token 삭제
+	    	redisDao.deleteValues("RT:" + authentication.getName());
+	    }
 
-		UserEntity uvo = service.user_login_info(username);
-		log.info("uvo: {}", uvo);
-		Map<String, String> map = new HashMap<String, String>();
+	    /*4. 해당 access token 유효시간 가지고 와서 BlackList로 저장*/
+	    Long expiration = tokenProvider.getExpiration(logout.getToken());
+	    redisTemplate.redisTemplate().opsForValue()
+	            .set(logout.getToken(), "logout", expiration, TimeUnit.MILLISECONDS);
 
-		session.setAttribute("user_id", uvo.getUser_id());
-
-		Cookie cookie = new Cookie("user_no", uvo.getUser_no()); // 고유번호 쿠키 저장
-		cookie.setPath("/");
-		response.addCookie(cookie);
-
-		log.info("User Login success.....");
-		map.put("result", "1"); // 로그인 성공
-
-		String jsonObject = gson.toJson(map);
-
-		return jsonObject;
+	    return new ResponseEntity<>("1",HttpStatus.OK);
 	}
 
-	// **********************
-	// 로그인 실패
-	// **********************
-	@ApiOperation(value = "로그인 실패", notes = "로그인 실패 입니다")
-	@PostMapping("/loginFail")
-	public String user_loginFail(UserEntity uvo, HttpServletResponse response) {
-		log.info("user_loginFail ()...");
-		log.info("result: {}", uvo);
-
-		Map<String, String> map = new HashMap<String, String>();
-
-		log.info("User Login failed.....");
-		map.put("result", "0"); // 로그인 실패
-
-		String jsonObject = gson.toJson(map);
-
-		return jsonObject;
+	@ApiOperation(value = "테스트", notes = "테스트")
+	@GetMapping("/test")
+	public String test() {
+		return "1";
 	}
+
 
 }// end class
