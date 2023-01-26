@@ -108,8 +108,7 @@ public class UserSecurityConfig {
 		            .and().logout()
 		            .logoutRequestMatcher(new AntPathRequestMatcher("/user/logout")) // 로그아웃// URL
 		            .logoutSuccessUrl("/user/logoutOK") // 성공시 리턴 URL
-//		            .invalidateHttpSession(true) // 인증정보를 지우하고 세션을 무효화
-		            .deleteCookies("JSESSIONID", "backoffice_no", "host_image") // JSESSIONID 쿠키 삭제
+		            .deleteCookies("user_no", "user_image") // JSESSIONID 쿠키 삭제
 		            .permitAll();
 		
 		      return http.build();
