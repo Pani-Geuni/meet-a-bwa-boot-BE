@@ -40,7 +40,7 @@ import com.mab.jwt.RedisDao;
 import com.mab.jwt.TokenProvider;
 import com.mab.user.model.LoginDto;
 import com.mab.user.model.TokenDto;
-import com.mab.user.model.UserEntity;
+import com.mab.user.model.UserDto;
 import com.mab.user.service.UserService;
 
 import io.swagger.annotations.Api;
@@ -102,7 +102,7 @@ public class UserController {
 			log.info("login success....♡");
 
 			// Cookie Setting
-			UserEntity uvo = service.user_login_info(loginDto.getUsername());
+			UserDto uvo = service.user_login_info(loginDto.getUsername());
 //			Cookie cookie1 = new Cookie("user_no", uvo.getUser_no());
 //			cookie1.setPath("/");
 //			response.addCookie(cookie1);
@@ -136,16 +136,16 @@ public class UserController {
 
 	}
 	
-	@ApiOperation(value = "로그인", notes = "로그인 - 성공/실패")
-	@PostMapping("/logout")
-	public ResponseEntity<String> logout(TokenDto logout) {
+	@ApiOperation(value = "로그아웃", notes = "로그아웃 - 성공/실패")
+	@GetMapping("/logoutOK")
+	public ResponseEntity<String> logout(HttpServletRequest request) {
 	    /*1. Access Token 검증*/
-	    if (!tokenProvider.validateToken(logout.getToken())) {
+	    if (!tokenProvider.validateToken(request.getHeader("Authorization").substring(7))) {
 	        return new ResponseEntity<>("0", HttpStatus.BAD_REQUEST);
 	    }
 
 	    /*2. Access Token에서 User id을 가져옴*/
-	    Authentication authentication = tokenProvider.getAuthentication(logout.getToken());
+	    Authentication authentication = tokenProvider.getAuthentication(request.getHeader("Authorization").substring(7));
 
 	    /*3. Redis에서 해당 User id로 저장된 refresh token이 있는지 여부를 확인 후, 있을 경우 삭제*/
 	    if (redisTemplate.redisTemplate().opsForValue().get("RT:" + authentication.getName()) != null) {
@@ -154,9 +154,9 @@ public class UserController {
 	    }
 
 	    /*4. 해당 access token 유효시간 가지고 와서 BlackList로 저장*/
-	    Long expiration = tokenProvider.getExpiration(logout.getToken());
+	    Long expiration = tokenProvider.getExpiration(request.getHeader("Authorization").substring(7));
 	    redisTemplate.redisTemplate().opsForValue()
-	            .set(logout.getToken(), "logout", expiration, TimeUnit.MILLISECONDS);
+	            .set(request.getHeader("Authorization").substring(7), "logout", expiration, TimeUnit.MILLISECONDS);
 
 	    return new ResponseEntity<>("1",HttpStatus.OK);
 	}
