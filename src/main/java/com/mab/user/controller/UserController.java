@@ -40,7 +40,7 @@ import com.mab.jwt.RedisDao;
 import com.mab.jwt.TokenProvider;
 import com.mab.user.model.LoginDto;
 import com.mab.user.model.TokenDto;
-import com.mab.user.model.UserEntity;
+import com.mab.user.model.UserDto;
 import com.mab.user.service.UserService;
 
 import io.swagger.annotations.Api;
@@ -102,7 +102,7 @@ public class UserController {
 			log.info("login success....♡");
 
 			// Cookie Setting
-			UserEntity uvo = service.user_login_info(loginDto.getUsername());
+			UserDto uvo = service.user_login_info(loginDto.getUsername());
 //			Cookie cookie1 = new Cookie("user_no", uvo.getUser_no());
 //			cookie1.setPath("/");
 //			response.addCookie(cookie1);

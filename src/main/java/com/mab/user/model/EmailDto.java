@@ -3,19 +3,19 @@ package com.mab.user.model;
 
 import java.util.Objects;
 
-public class EmailVO {
+public class EmailDto {
 
 	private String reciver;
 	private String subject;
 	private String content;
 	
 	
-	public EmailVO() {
+	public EmailDto() {
 		// TODO Auto-generated constructor stub
 	}
 
 
-	public EmailVO(String reciver, String subject, String content) {
+	public EmailDto(String reciver, String subject, String content) {
 		super();
 		this.reciver = reciver;
 		this.subject = subject;
@@ -67,7 +67,7 @@ public class EmailVO {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		EmailVO other = (EmailVO) obj;
+		EmailDto other = (EmailDto) obj;
 		return Objects.equals(content, other.content) && Objects.equals(reciver, other.reciver)
 				&& Objects.equals(subject, other.subject);
 	}

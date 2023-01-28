@@ -1,15 +1,13 @@
 
 package com.mab.user.repository;
 
-import java.util.Optional;
-
 import javax.transaction.Transactional;
 
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
+import com.mab.user.model.UserDto;
 import com.mab.user.model.UserEntity;
 
 public interface UserRepository extends JpaRepository<UserEntity, Object> {
@@ -48,10 +46,5 @@ public interface UserRepository extends JpaRepository<UserEntity, Object> {
 	@Query(nativeQuery = true, value = "select * from userinfo where user_no=?1")
 	public UserEntity user_mypage_select(String user_no);
 
-
-	
-	
-	
-	
 	
 }//end class
