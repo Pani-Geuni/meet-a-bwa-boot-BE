@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
@@ -53,7 +54,10 @@ public class UserInformation implements UserService {
 		this.redisDao = redisDao;
 	}
 	
-	
+	/**
+	 * 로그인
+	 * 
+	 */
 	@Override
 	public Map<String, Object> login(@Valid LoginDto loginDto, HttpServletResponse response) {
 		
@@ -111,6 +115,37 @@ public class UserInformation implements UserService {
 		}
 		map.put("tokenDto", tokenDto);
 		return map;
+	}
+
+
+	/**
+	 * 로그아웃
+	 * 
+	 */
+	@Override
+	public String logoutOK(HttpServletRequest request) {
+		
+		String result = "1";
+		 /*1. Access Token 검증*/
+	    if (!tokenProvider.validateToken(request.getHeader("Authorization").substring(7))) {
+	    	result="0";
+	    }
+
+	    /*2. Access Token에서 User id을 가져옴*/
+	    Authentication authentication = tokenProvider.getAuthentication(request.getHeader("Authorization").substring(7));
+
+	    /*3. Redis에서 해당 User id로 저장된 refresh token이 있는지 여부를 확인 후, 있을 경우 삭제*/
+	    if (redisTemplate.redisTemplate().opsForValue().get("RT:" + authentication.getName()) != null) {
+	        //refresh token 삭제
+	    	redisDao.deleteValues("RT:" + authentication.getName());
+	    }
+
+	    /*4. 해당 access token 유효시간 가지고 와서 BlackList로 저장*/
+	    Long expiration = tokenProvider.getExpiration(request.getHeader("Authorization").substring(7));
+	    redisTemplate.redisTemplate().opsForValue()
+	            .set(request.getHeader("Authorization").substring(7), "logout", expiration, TimeUnit.MILLISECONDS);
+	    
+	    return result;
 	}
 
 }// end class
