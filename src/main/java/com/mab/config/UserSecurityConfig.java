@@ -21,7 +21,7 @@ import com.mab.jwt.JwtAccessDeniedHandler;
 import com.mab.jwt.JwtAuthenticationEntryPoint;
 import com.mab.jwt.JwtSecurityConfig;
 import com.mab.jwt.TokenProvider;
-import com.mab.user.service.UserService;
+import com.mab.user.service.UserSecurity;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,7 +50,7 @@ public class UserSecurityConfig {
 	    
 	@Bean
 	public UserDetailsService userUserDetailsService() {
-		return new UserService();
+		return new UserSecurity();
 	}
 
 	// BCryptPasswordEncoder는 Spring Security에서 제공하는 비밀번호 암호화 객체 (BCrypt라는 해시 함수를 이용하여 패스워드를 암호화 한다.)
@@ -96,7 +96,7 @@ public class UserSecurityConfig {
 		            // 세션을 사용하지 않기 때문에 STATELESS로 설정
 		            .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 		
-		            .and().authorizeRequests().antMatchers("/","/authenticate", "/test/", "/api/v2/**", "/v3/api-docs", "/static/**", "/swagger*/**",
+		            .and().authorizeRequests().antMatchers("/","/user/login","/**", "/test/", "/api/v2/**", "/v3/api-docs", "/static/**", "/swagger*/**",
 							"/api/v1/auth/**", "/h2-console/**", "/favicon.ico", "/swagger-ui.html", "/swagger/**",
 							"/swagger-resources/**", "webjars/**", "/v2/api-docs", "/user/insertOK", "/js/**", "/css/**",
 							"/images/**", "/error").permitAll()

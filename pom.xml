@@ -147,11 +147,7 @@
 			<version>1.6</version>
 		</dependency>
 
-		<!-- email -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-mail</artifactId>
-		</dependency>
+
 
 		<!-- 파일 업로드 -->
 		<!-- https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
