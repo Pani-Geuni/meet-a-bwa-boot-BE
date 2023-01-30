@@ -27,9 +27,9 @@ public interface UserRepository extends JpaRepository<UserEntity, Object> {
 	@Query(nativeQuery = true, value = "select * from userinfo where user_state='Y' and user_email= ?1")
 	public UserEntity user_id_select(String user_email);
 
-	//비밀번호 찾기 - 아이디 이메일 불러오기
+	//비밀번호 찾기
 	@Query(nativeQuery = true, value = "select * from userinfo where user_state='Y' and user_id=?1 and user_email=?2")
-	public UserEntity user_id_email_select(String user_id, String user_email);
+	public UserEntity user_pw_select(String user_id, String user_email);
 
 	//비밀번호 찾기 - 비밀번호 저장
 	@Transactional

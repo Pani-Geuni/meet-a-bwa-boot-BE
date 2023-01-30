@@ -18,4 +18,6 @@ public interface UserService {
 
 	public String findId(String user_email);
 
+	public String findPw(String user_id, String user_email);
+
 }

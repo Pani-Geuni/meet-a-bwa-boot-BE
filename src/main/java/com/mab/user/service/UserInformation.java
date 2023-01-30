@@ -167,4 +167,22 @@ public class UserInformation implements UserService {
 		return result;
 	}
 
+	@Override
+	public String findPw(String user_id, String user_email) {
+
+		int flag = 0;
+		
+		UserDto uvo = dao.user_pw_select(user_id, user_email); // 아이디 이메일 체크
+
+		if (uvo != null) {
+			uvo = email.findPw(uvo); // 유저의 메일로 아이디 전송
+			if (uvo!=null) {
+				flag = dao.user_pw_init(uvo);
+			}
+		}
+		
+		return String.valueOf(flag);
+
+	}
+
 }// end class

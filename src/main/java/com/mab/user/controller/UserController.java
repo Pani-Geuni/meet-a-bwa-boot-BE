@@ -2,37 +2,22 @@
 package com.mab.user.controller;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.mab.config.RedisConfig;
 import com.mab.jwt.JwtFilter;
-import com.mab.jwt.RedisDao;
-import com.mab.jwt.TokenProvider;
 import com.mab.user.model.LoginDto;
-import com.mab.user.model.TokenDto;
-import com.mab.user.model.UserDto;
 import com.mab.user.service.UserService;
 
 import io.swagger.annotations.Api;
@@ -91,6 +76,19 @@ public class UserController {
 	public ResponseEntity<String> findId(String user_email) {
 		
 		String result = service.findId(user_email);
+		
+		return ResponseEntity.ok().body(result);
+	}
+	
+	/**
+	 * 비밀번호 찾기
+	 * 
+	 */
+	@ApiOperation(value = "비밀번호", notes = "비밀번호 찾기")
+	@PutMapping("/search/pw")
+	public ResponseEntity<String> findPw(String user_id, String user_email) {
+		
+		String result = service.findPw(user_id, user_email);
 		
 		return ResponseEntity.ok().body(result);
 	}

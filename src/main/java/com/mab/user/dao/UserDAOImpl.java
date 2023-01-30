@@ -76,13 +76,14 @@ public class UserDAOImpl implements UserDAO{
 	}
 
 	/**
-	 * 비밀번호 찾기 - 아이디 이메일 불러오기
+	 * 비밀번호 찾기 
 	 * 
 	 */
-	public UserDto user_id_email_select(UserDto uvo) {
-		log.info("user_id_email_select()....");
+	public UserDto user_pw_select(String user_id, String user_email) {
 		
-		UserEntity ue = repository.user_id_email_select(uvo.getUser_id(), uvo.getUser_email());
+		UserDto uvo = new UserDto();
+		
+		UserEntity ue = repository.user_pw_select(user_id, user_email);
 		
 		if(ue!=null) {
 			uvo = modelMapper.map(ue, UserDto.class);
@@ -98,7 +99,6 @@ public class UserDAOImpl implements UserDAO{
 	 * 
 	 */
 	public int user_pw_init(UserDto uvo) {
-		log.info("user_pw_init()....");
 		return repository.user_pw_init(uvo.getPassword(), uvo.getUser_no());
 	}
 
