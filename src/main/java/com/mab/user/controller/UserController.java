@@ -48,12 +48,13 @@ public class UserController {
 	@Autowired
 	UserService service;
 
-	@Autowired
-	HttpSession session;
-
 //	@Autowired
-//	UserSendEmail authSendEmail;
+//	HttpSession session;
 
+	/**
+	 * 로그인
+	 * 
+	 */
 	@ApiOperation(value = "로그인", notes = "로그인 - 성공/실패")
 	@PostMapping(path="/login", produces="application/json; charset=UTF8")
 	public ResponseEntity<Object> authorize(@Valid @RequestBody LoginDto loginDto, HttpServletResponse response) {
@@ -68,6 +69,10 @@ public class UserController {
 
 	}
 	
+	/**
+	 * 로그아웃
+	 * 
+	 */
 	@ApiOperation(value = "로그아웃", notes = "로그아웃 - 성공/실패")
 	@GetMapping("/logoutOK")
 	public ResponseEntity<String> logout(HttpServletRequest request) {
@@ -75,6 +80,19 @@ public class UserController {
 		String result = service.logoutOK(request);
 
 	    return ResponseEntity.ok().body(result);
+	}
+	
+	/**
+	 * 아이디 찾기
+	 * 
+	 */
+	@ApiOperation(value = "아이디", notes = "아이디 찾기")
+	@GetMapping("/search/id")
+	public ResponseEntity<String> findId(String user_email) {
+		
+		String result = service.findId(user_email);
+		
+		return ResponseEntity.ok().body(result);
 	}
 
 

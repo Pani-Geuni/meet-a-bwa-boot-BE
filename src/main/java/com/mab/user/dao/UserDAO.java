@@ -8,4 +8,6 @@ public interface UserDAO {
 
 	public UserDto user_login_info(@NotNull String username);
 
+	public UserDto user_id_select(String user_email);
+
 }

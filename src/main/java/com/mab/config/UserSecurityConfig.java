@@ -96,7 +96,7 @@ public class UserSecurityConfig {
 		            // 세션을 사용하지 않기 때문에 STATELESS로 설정
 		            .and().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
 		
-		            .and().authorizeRequests().antMatchers("/","/user/login", "/test/", "/api/v2/**", "/v3/api-docs", "/static/**", "/swagger*/**",
+		            .and().authorizeRequests().antMatchers("/","/user/login","/**", "/test/", "/api/v2/**", "/v3/api-docs", "/static/**", "/swagger*/**",
 							"/api/v1/auth/**", "/h2-console/**", "/favicon.ico", "/swagger-ui.html", "/swagger/**",
 							"/swagger-resources/**", "webjars/**", "/v2/api-docs", "/user/insertOK", "/js/**", "/css/**",
 							"/images/**", "/error").permitAll()

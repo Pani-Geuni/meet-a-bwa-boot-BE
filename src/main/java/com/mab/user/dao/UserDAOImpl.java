@@ -41,13 +41,15 @@ public class UserDAOImpl implements UserDAO{
 	}
 
 	/**
-	 * 아이디 찾기-사용자 이메일 불러오기
+	 * 아이디 찾기
 	 * 
 	 */
-	public UserDto user_email_select(UserDto uvo) {
-		log.info("user_id_email_select()....");
+	public UserDto user_id_select(String user_email) {
+		log.info("user_id_select()....");
 		
-		UserEntity ue = repository.user_email_select(uvo.getUser_email());
+		UserDto uvo = new UserDto();
+		
+		UserEntity ue = repository.user_id_select(user_email);
 		
 		if(ue!=null) {
 			uvo = modelMapper.map(ue, UserDto.class);

@@ -16,4 +16,6 @@ public interface UserService {
 
 	public String logoutOK(HttpServletRequest request);
 
+	public String findId(String user_email);
+
 }

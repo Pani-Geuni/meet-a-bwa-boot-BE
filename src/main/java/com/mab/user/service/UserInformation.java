@@ -38,8 +38,10 @@ public class UserInformation implements UserService {
 	
 	@Autowired
 	UserDAO dao;
+	
+	@Autowired
+	SendEmail email;
 
-	// 자동 개행 및 줄 바꿈 (new Gson은 일자로 나옴)
 	Gson gson = new GsonBuilder().setPrettyPrinting().create();
 
 	private final TokenProvider tokenProvider;
@@ -146,6 +148,23 @@ public class UserInformation implements UserService {
 	            .set(request.getHeader("Authorization").substring(7), "logout", expiration, TimeUnit.MILLISECONDS);
 	    
 	    return result;
+	}
+
+	/**
+	 * 아이디 찾기
+	 * 
+	 */
+	@Override
+	public String findId(String user_email) {
+
+		String result = "0";
+		UserDto uvo = dao.user_id_select(user_email);
+		
+		if (uvo != null) {
+			result = email.findId(uvo); // 유저의 메일로 아이디 전송
+		}
+		
+		return result;
 	}
 
 }// end class
